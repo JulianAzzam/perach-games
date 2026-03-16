@@ -1,0 +1,563 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لعبة بطاقات الرياضيات</title>
+  <style>
+    :root {
+      --bg-1: #f6efe7;
+      --bg-2: #d9ecff;
+      --ink: #1e293b;
+      --accent: #0ea5a5;
+      --accent-dark: #0b7e7e;
+      --good: #16a34a;
+      --bad: #dc2626;
+      --card: #ffffff;
+      --card-2: #f8fafc;
+      --shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 20%, #fde68a 0%, transparent 35%),
+        radial-gradient(circle at 90% 85%, #bfdbfe 0%, transparent 35%),
+        linear-gradient(160deg, var(--bg-1), var(--bg-2));
+      min-height: 100vh;
+      padding: 24px 16px 32px;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+      letter-spacing: 0.4px;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      opacity: 0.9;
+    }
+
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+    }
+
+    .game-panel {
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+      padding: 16px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(180deg, var(--card), var(--card-2));
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+      min-height: 88px;
+      padding: 8px;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .card:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+    }
+
+    .card:disabled {
+      cursor: default;
+      opacity: 0.8;
+    }
+
+    .card.selected {
+      outline: 3px solid #14b8a6;
+    }
+
+    .card.solved {
+      background: linear-gradient(180deg, #dcfce7, #bbf7d0);
+      color: #14532d;
+    }
+
+    .qa-box {
+      border: 1px dashed rgba(15, 23, 42, 0.22);
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    .question {
+      font-size: clamp(1.2rem, 2.6vw, 1.7rem);
+      font-weight: 800;
+      margin: 0 0 12px;
+      min-height: 42px;
+    }
+
+    .question.math-ltr {
+      direction: ltr;
+      unicode-bidi: isolate;
+      text-align: right;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .choices-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(140px, 1fr));
+      gap: 10px;
+      width: 100%;
+      direction: ltr;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .btn-secondary {
+      background: #0f172a;
+      color: #fff;
+    }
+
+    .choice-btn {
+      background: #f1f5f9;
+      color: #0f172a;
+      border: 1px solid rgba(15, 23, 42, 0.18);
+      text-align: center;
+      font-size: 1.05rem;
+    }
+
+    .choice-btn:hover:not(:disabled) {
+      background: #e2e8f0;
+    }
+
+    .choice-btn.correct {
+      background: #dcfce7;
+      border-color: #16a34a;
+      color: #14532d;
+    }
+
+    .choice-btn.wrong {
+      background: #fee2e2;
+      border-color: #dc2626;
+      color: #7f1d1d;
+    }
+
+    .choice-btn:disabled {
+      cursor: default;
+      opacity: 0.95;
+    }
+
+    #message {
+      margin-top: 10px;
+      min-height: 24px;
+      font-weight: 700;
+    }
+
+    .good {
+      color: var(--good);
+    }
+
+    .bad {
+      color: var(--bad);
+    }
+
+    .win-box {
+      margin-top: 12px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      min-height: 22px;
+    }
+
+    #confetti {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 99;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+
+  <div class="container">
+    <div class="header">
+      <h1>لعبة اختيار بطاقة الرياضيات</h1>
+      <p>اختر بطاقة، حل السؤال، واجمع النقاط.</p>
+    </div>
+
+    <div class="top-bar">
+      <div class="pill">النقاط: <span id="score">0</span></div>
+      <div class="pill">تم الحل: <span id="solvedCount">0</span> / <span id="totalCards">20</span></div>
+      <button class="btn btn-secondary" id="newRoundBtn">جولة عشوائية جديدة</button>
+    </div>
+
+    <div class="game-panel">
+      <div class="cards-grid" id="cardsGrid"></div>
+
+      <div class="qa-box">
+        <p class="question" id="questionText">اختر بطاقة للبدء.</p>
+        <div class="controls">
+          <div class="choices-grid" id="choicesGrid"></div>
+        </div>
+        <div id="message"></div>
+        <div class="win-box" id="winText"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOTAL_CARDS = 20;
+    const MCQ_CARDS = 13; // 65%
+    const TF_CARDS = TOTAL_CARDS - MCQ_CARDS; // 35%
+    const cards = [];
+    let activeIndex = -1;
+    let score = 0;
+
+    const scoreEl = document.getElementById("score");
+    const solvedCountEl = document.getElementById("solvedCount");
+    const totalCardsEl = document.getElementById("totalCards");
+    const cardsGridEl = document.getElementById("cardsGrid");
+    const questionTextEl = document.getElementById("questionText");
+    const choicesGridEl = document.getElementById("choicesGrid");
+    const messageEl = document.getElementById("message");
+    const winTextEl = document.getElementById("winText");
+    const newRoundBtn = document.getElementById("newRoundBtn");
+
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function makeMultiplicationQuestion() {
+      const a = randInt(1, 11);
+      const b = randInt(1, 11);
+      return { expr: `${a} × ${b}`, answer: a * b, points: 10 };
+    }
+
+    function makeDivisionQuestion() {
+      const easyDivisors = [2, 3, 4, 5, 6, 8, 10, 12];
+      const divisor = easyDivisors[randInt(0, easyDivisors.length - 1)];
+      const quotient = randInt(2, 30);
+      const dividend = divisor * quotient;
+      return { expr: `${dividend} ÷ ${divisor}`, answer: quotient, points: 12 };
+    }
+
+    function makeAdditionQuestion() {
+      const a = randInt(30, 260);
+      const b = randInt(25, 220);
+      return { expr: `${a} + ${b}`, answer: a + b, points: 8 };
+    }
+
+    function makeSubtractionQuestion() {
+      const a = randInt(80, 320);
+      const b = randInt(15, a - 15);
+      return { expr: `${a} - ${b}`, answer: a - b, points: 8 };
+    }
+
+    function makeChoices(answer) {
+      const options = new Set([answer]);
+      while (options.size < 4) {
+        const delta = randInt(2, 15) * (Math.random() < 0.5 ? -1 : 1);
+        let wrong = answer + delta;
+        if (wrong < 0) wrong = Math.abs(wrong) + randInt(1, 5);
+        options.add(wrong);
+      }
+      return shuffle([...options]);
+    }
+
+    function makeWrongAnswer(answer) {
+      let wrong = answer;
+      while (wrong === answer) {
+        const delta = randInt(2, 18) * (Math.random() < 0.5 ? -1 : 1);
+        wrong = answer + delta;
+        if (wrong < 0) wrong = Math.abs(wrong) + randInt(1, 6);
+      }
+      return wrong;
+    }
+
+    function buildDeck() {
+      cards.length = 0;
+      const factories = [
+        ...Array(5).fill(makeMultiplicationQuestion),
+        ...Array(5).fill(makeDivisionQuestion),
+        ...Array(5).fill(makeAdditionQuestion),
+        ...Array(5).fill(makeSubtractionQuestion)
+      ];
+      const cardModes = shuffle([
+        ...Array(MCQ_CARDS).fill("mcq"),
+        ...Array(TF_CARDS).fill("tf")
+      ]);
+      shuffle(factories);
+      for (let i = 0; i < TOTAL_CARDS; i++) {
+        const baseQuestion = factories[i]();
+        const mode = cardModes[i];
+        const isStatementTrue = Math.random() < 0.5;
+        const shownAnswer = isStatementTrue ? baseQuestion.answer : makeWrongAnswer(baseQuestion.answer);
+        cards.push({
+          mode,
+          points: baseQuestion.points,
+          text: mode === "mcq"
+            ? `${baseQuestion.expr} = ?`
+            : `${baseQuestion.expr} = ${shownAnswer}`,
+          answer: mode === "mcq" ? baseQuestion.answer : isStatementTrue,
+          choices: mode === "mcq"
+            ? makeChoices(baseQuestion.answer)
+            : [
+              { label: "✅ صحيحة", value: true },
+              { label: "❌ غير صحيحة", value: false }
+            ],
+          solved: false
+        });
+      }
+    }
+
+    function updateHeader() {
+      scoreEl.textContent = String(score);
+      const solved = cards.filter((c) => c.solved).length;
+      solvedCountEl.textContent = String(solved);
+      totalCardsEl.textContent = String(TOTAL_CARDS);
+      if (solved === TOTAL_CARDS) {
+        winTextEl.textContent = "أحسنت! لقد حللت كل البطاقات.";
+      } else {
+        winTextEl.textContent = "";
+      }
+    }
+
+    function renderCards() {
+      cardsGridEl.innerHTML = "";
+      cards.forEach((card, index) => {
+        const btn = document.createElement("button");
+        btn.className = "card";
+        if (index === activeIndex) btn.classList.add("selected");
+        if (card.solved) btn.classList.add("solved");
+        btn.disabled = card.solved;
+        btn.innerHTML = card.solved ? `بطاقة ${index + 1}<br />تم` : `بطاقة ${index + 1}<br />اختر`;
+        btn.addEventListener("click", () => selectCard(index));
+        cardsGridEl.appendChild(btn);
+      });
+    }
+
+    function selectCard(index) {
+      activeIndex = index;
+      messageEl.textContent = "";
+      messageEl.className = "";
+      questionTextEl.textContent = cards[index].text;
+      questionTextEl.classList.add("math-ltr");
+      renderChoices();
+      renderCards();
+    }
+
+    function answerQuestion(userAnswer, clickedBtn) {
+      const card = cards[activeIndex];
+      if (userAnswer === card.answer) {
+        if (clickedBtn) clickedBtn.classList.add("correct");
+        disableChoices();
+        card.solved = true;
+        score += card.points;
+        messageEl.textContent = `✅ إجابة صحيحة! +${card.points} نقطة`;
+        messageEl.className = "good";
+        launchConfetti(120);
+        setTimeout(() => {
+          activeIndex = -1;
+          questionTextEl.textContent = "رائع! اختر بطاقة أخرى.";
+          questionTextEl.classList.remove("math-ltr");
+          renderChoices();
+          renderCards();
+          updateHeader();
+        }, 550);
+      } else {
+        if (clickedBtn) clickedBtn.classList.add("wrong");
+        markCorrectChoice(card.answer);
+        disableChoices();
+        messageEl.textContent = "❌ غير صحيحة، حاول مرة أخرى.";
+        messageEl.className = "bad";
+        setTimeout(() => {
+          renderChoices();
+        }, 800);
+      }
+    }
+
+    function checkAnswer(choiceValue, clickedBtn) {
+      if (activeIndex < 0) {
+        messageEl.textContent = "اختر بطاقة أولاً.";
+        messageEl.className = "bad";
+        return;
+      }
+      answerQuestion(choiceValue, clickedBtn);
+    }
+
+    function disableChoices() {
+      const btns = choicesGridEl.querySelectorAll("button");
+      btns.forEach((btn) => {
+        btn.disabled = true;
+      });
+    }
+
+    function markCorrectChoice(correctAnswer) {
+      const btns = choicesGridEl.querySelectorAll("button");
+      btns.forEach((btn) => {
+        if (btn.dataset.value === String(correctAnswer)) {
+          btn.classList.add("correct");
+        }
+      });
+    }
+
+    function renderChoices() {
+      choicesGridEl.innerHTML = "";
+      if (activeIndex < 0) return;
+      const card = cards[activeIndex];
+      card.choices.forEach((choice) => {
+        const btn = document.createElement("button");
+        btn.className = "btn choice-btn";
+        btn.type = "button";
+        const label = typeof choice === "object" ? choice.label : String(choice);
+        const value = typeof choice === "object" ? choice.value : choice;
+        btn.textContent = label;
+        btn.dataset.value = String(value);
+        btn.addEventListener("click", () => checkAnswer(value, btn));
+        choicesGridEl.appendChild(btn);
+      });
+    }
+
+    function startRound() {
+      score = 0;
+      activeIndex = -1;
+      buildDeck();
+      renderCards();
+      questionTextEl.textContent = "اختر بطاقة للبدء.";
+      questionTextEl.classList.remove("math-ltr");
+      messageEl.textContent = "";
+      messageEl.className = "";
+      winTextEl.textContent = "";
+      choicesGridEl.innerHTML = "";
+      updateHeader();
+    }
+
+    const confettiCanvas = document.getElementById("confetti");
+    const ctx = confettiCanvas.getContext("2d");
+    let confettiParticles = [];
+    let confettiRunning = false;
+
+    function resizeCanvas() {
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    }
+
+    function launchConfetti(count) {
+      resizeCanvas();
+      const colors = ["#ef4444", "#22c55e", "#3b82f6", "#f59e0b", "#ec4899", "#14b8a6"];
+      for (let i = 0; i < count; i++) {
+        confettiParticles.push({
+          x: Math.random() * confettiCanvas.width,
+          y: -10 - Math.random() * confettiCanvas.height * 0.2,
+          r: 4 + Math.random() * 5,
+          d: 2 + Math.random() * 3,
+          tilt: Math.random() * 8 - 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: Math.random() * 2 - 1,
+          vy: 2 + Math.random() * 3
+        });
+      }
+      if (!confettiRunning) animateConfetti();
+    }
+
+    function animateConfetti() {
+      confettiRunning = true;
+      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      confettiParticles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.tilt += p.d * 0.05;
+        ctx.beginPath();
+        ctx.lineWidth = p.r;
+        ctx.strokeStyle = p.color;
+        ctx.moveTo(p.x + p.tilt, p.y);
+        ctx.lineTo(p.x, p.y + p.tilt);
+        ctx.stroke();
+      });
+
+      confettiParticles = confettiParticles.filter((p) => p.y < confettiCanvas.height + 30);
+      if (confettiParticles.length > 0) {
+        requestAnimationFrame(animateConfetti);
+      } else {
+        ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confettiRunning = false;
+      }
+    }
+
+    newRoundBtn.addEventListener("click", startRound);
+    window.addEventListener("resize", resizeCanvas);
+
+    startRound();
+  </script>
+</body>
+</html>
+

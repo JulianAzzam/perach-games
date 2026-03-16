@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لعبة مطابقة البطاقات</title>
+  <style>
+    :root {
+      --bg-1: #fdf4e7;
+      --bg-2: #dbeafe;
+      --ink: #1f2937;
+      --accent: #0891b2;
+      --accent-2: #f59e0b;
+      --ok: #16a34a;
+      --bad: #dc2626;
+      --card-back: linear-gradient(135deg, #0f172a, #1d4ed8);
+      --card-front: linear-gradient(180deg, #ffffff, #eef2ff);
+      --shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 12%, #fde68a 0%, transparent 28%),
+        radial-gradient(circle at 85% 82%, #bfdbfe 0%, transparent 30%),
+        linear-gradient(160deg, var(--bg-1), var(--bg-2));
+      padding: 24px 14px 32px;
+    }
+
+    .container {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+    }
+
+    .head {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .head h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+    }
+
+    .head p {
+      margin: 6px 0 0;
+      opacity: 0.9;
+      font-weight: 600;
+    }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-weight: 800;
+      box-shadow: var(--shadow);
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      color: #fff;
+      background: var(--accent);
+    }
+
+    .btn:hover {
+      filter: brightness(0.95);
+    }
+
+    .status {
+      text-align: center;
+      font-weight: 800;
+      min-height: 24px;
+      margin-bottom: 12px;
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .status.bad {
+      color: var(--bad);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .memory-card {
+      position: relative;
+      border: none;
+      background: none;
+      padding: 0;
+      height: 110px;
+      perspective: 900px;
+      cursor: pointer;
+    }
+
+    .memory-card:disabled {
+      cursor: default;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.5s ease;
+    }
+
+    .memory-card.flipped .card-inner,
+    .memory-card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backface-visibility: hidden;
+      box-shadow: var(--shadow);
+      border: 2px solid rgba(255, 255, 255, 0.55);
+    }
+
+    .face.back {
+      background: var(--card-back);
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    .face.front {
+      transform: rotateY(180deg);
+      background: var(--card-front);
+      font-size: 2rem;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .shape-name {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #334155;
+    }
+
+    .memory-card.matched .face.front {
+      outline: 3px solid #22c55e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="head">
+      <h1>لعبة مطابقة الأشكال</h1>
+      <p>افتح بطاقتين متشابهتين لتحصل على نقاط.</p>
+    </div>
+
+    <div class="stats">
+      <div class="pill">النقاط: <span id="score">0</span></div>
+      <div class="pill">الأزواج: <span id="pairs">0</span> / 12</div>
+      <div class="pill">المحاولات: <span id="tries">0</span></div>
+      <button class="btn" id="restartBtn">إعادة اللعب</button>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <script>
+    const SHAPES = [
+      { id: "circle", icon: "●", name: "دائرة" },
+      { id: "square", icon: "■", name: "مربع" },
+      { id: "triangle", icon: "▲", name: "مثلث" },
+      { id: "diamond", icon: "◆", name: "معين" },
+      { id: "star", icon: "★", name: "نجمة" },
+      { id: "heart", icon: "♥", name: "قلب" },
+      { id: "spade", icon: "♠", name: "سبيد" },
+      { id: "club", icon: "♣", name: "كلب" },
+      { id: "sun", icon: "☀", name: "شمس" },
+      { id: "moon", icon: "☾", name: "قمر" },
+      { id: "cloud", icon: "☁", name: "سحابة" },
+      { id: "flower", icon: "✿", name: "زهرة" },
+      { id: "plus", icon: "✚", name: "زائد" },
+      { id: "cross", icon: "✖", name: "تقاطع" },
+      { id: "hex", icon: "⬢", name: "سداسي" }
+    ];
+
+    const ACTIVE_SHAPES = SHAPES.slice(0, 12);
+
+    const boardEl = document.getElementById("board");
+    const statusEl = document.getElementById("status");
+    const scoreEl = document.getElementById("score");
+    const pairsEl = document.getElementById("pairs");
+    const triesEl = document.getElementById("tries");
+    const restartBtn = document.getElementById("restartBtn");
+
+    let cards = [];
+    let score = 0;
+    let pairs = 0;
+    let tries = 0;
+    let lockBoard = false;
+    let firstCard = null;
+    let secondCard = null;
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function buildDeck() {
+      const deck = [];
+      ACTIVE_SHAPES.forEach((shape) => {
+        deck.push({ uid: crypto.randomUUID(), shapeId: shape.id, icon: shape.icon, name: shape.name, matched: false });
+        deck.push({ uid: crypto.randomUUID(), shapeId: shape.id, icon: shape.icon, name: shape.name, matched: false });
+      });
+      return shuffle(deck);
+    }
+
+    function setStatus(message, kind) {
+      statusEl.textContent = message;
+      statusEl.className = "status";
+      if (kind) statusEl.classList.add(kind);
+    }
+
+    function updateStats() {
+      scoreEl.textContent = String(score);
+      pairsEl.textContent = String(pairs);
+      triesEl.textContent = String(tries);
+    }
+
+    function renderBoard() {
+      boardEl.innerHTML = "";
+      cards.forEach((card) => {
+        const btn = document.createElement("button");
+        btn.className = "memory-card";
+        btn.dataset.uid = card.uid;
+        if (card.flipped) btn.classList.add("flipped");
+        if (card.matched) {
+          btn.classList.add("matched");
+          btn.disabled = true;
+        }
+
+        btn.innerHTML = `
+          <div class="card-inner">
+            <div class="face back">؟</div>
+            <div class="face front">
+              <div>${card.icon}</div>
+              <div class="shape-name">${card.name}</div>
+            </div>
+          </div>
+        `;
+
+        btn.addEventListener("click", () => onCardClick(card.uid));
+        boardEl.appendChild(btn);
+      });
+    }
+
+    function onCardClick(uid) {
+      if (lockBoard) return;
+      const card = cards.find((c) => c.uid === uid);
+      if (!card || card.matched || card.flipped) return;
+
+      card.flipped = true;
+      renderBoard();
+
+      if (!firstCard) {
+        firstCard = card;
+        return;
+      }
+
+      secondCard = card;
+      tries += 1;
+      checkMatch();
+    }
+
+    function checkMatch() {
+      if (!firstCard || !secondCard) return;
+      const isMatch = firstCard.shapeId === secondCard.shapeId;
+
+      if (isMatch) {
+        firstCard.matched = true;
+        secondCard.matched = true;
+        score += 10;
+        pairs += 1;
+        setStatus("ممتاز! حصلت على زوج متطابق.", "ok");
+        resetTurn();
+        renderBoard();
+        updateStats();
+        if (pairs === ACTIVE_SHAPES.length) {
+          score += 20;
+          updateStats();
+          setStatus("رائع! أنهيت اللعبة كلها.", "ok");
+        }
+        return;
+      }
+
+      updateStats();
+      setStatus("ليست مطابقة. حاول مرة أخرى.", "bad");
+      lockBoard = true;
+
+      setTimeout(() => {
+        firstCard.flipped = false;
+        secondCard.flipped = false;
+        resetTurn();
+        renderBoard();
+      }, 800);
+    }
+
+    function resetTurn() {
+      [firstCard, secondCard] = [null, null];
+      lockBoard = false;
+    }
+
+    function startGame() {
+      cards = buildDeck();
+      score = 0;
+      pairs = 0;
+      tries = 0;
+      resetTurn();
+      setStatus("ابدأ باختيار بطاقتين.", "");
+      updateStats();
+      renderBoard();
+    }
+
+    restartBtn.addEventListener("click", startGame);
+    startGame();
+  </script>
+</body>
+</html>
